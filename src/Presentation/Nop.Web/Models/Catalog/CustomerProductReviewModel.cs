@@ -4,7 +4,7 @@ using Nop.Web.Models.Common;
 
 namespace Nop.Web.Models.Catalog
 {
-    public record CustomerProductReviewModel : BaseNopModel
+    public partial record CustomerProductReviewModel : BaseNopModel
     {
         public CustomerProductReviewModel()
         {
