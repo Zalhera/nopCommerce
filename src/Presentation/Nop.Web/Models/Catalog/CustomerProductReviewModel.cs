@@ -22,7 +22,7 @@ namespace Nop.Web.Models.Catalog
         public IList<ProductReviewReviewTypeMappingModel> AdditionalProductReviewList { get; set; }
     }
 
-    public record CustomerProductReviewsModel : BaseNopModel
+    public partial record CustomerProductReviewsModel : BaseNopModel
     {
         public CustomerProductReviewsModel()
         {

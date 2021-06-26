@@ -9,7 +9,7 @@ namespace Nop.Web.Areas.Admin.Factories
     /// </summary>
     public partial interface IProductReviewModelFactory
     {
-        #region ProducrReview
+        #region ProductReview
 
         /// <summary>
         /// Prepare product review search model
