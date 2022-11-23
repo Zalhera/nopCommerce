@@ -1,4 +1,5 @@
 ﻿using EasyPost;
+using EasyPost.Models.API;
 
 namespace Nop.Plugin.Shipping.EasyPost.Domain.Shipment
 {
@@ -18,11 +19,11 @@ namespace Nop.Plugin.Shipping.EasyPost.Domain.Shipment
             if (parcel1 is null)
                 return false;
 
-            return parcel.weight == parcel1.weight &&
-                parcel.width == parcel1.width &&
-                parcel.length == parcel1.length &&
-                parcel.height == parcel1.height &&
-                string.Equals(parcel.predefined_package, parcel1.predefined_package, System.StringComparison.InvariantCultureIgnoreCase);
+            return parcel.Weight == parcel1.Weight &&
+                parcel.Width == parcel1.Width &&
+                parcel.Length == parcel1.Length &&
+                parcel.Height == parcel1.Height &&
+                string.Equals(parcel.PredefinedPackage, parcel1.PredefinedPackage, System.StringComparison.InvariantCultureIgnoreCase);
         }
 
         /// <summary>
@@ -36,11 +37,11 @@ namespace Nop.Plugin.Shipping.EasyPost.Domain.Shipment
             if (address1 is null)
                 return false;
 
-            return string.Equals(address.street1, address1.street1, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(address.city, address1.city, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(address.state, address1.state, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(address.country, address1.country, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(address.zip, address1.zip, System.StringComparison.InvariantCultureIgnoreCase);
+            return string.Equals(address.Street1, address1.Street1, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(address.City, address1.City, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(address.State, address1.State, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(address.Country, address1.Country, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(address.Zip, address1.Zip, System.StringComparison.InvariantCultureIgnoreCase);
         }
 
         /// <summary>
@@ -54,27 +55,27 @@ namespace Nop.Plugin.Shipping.EasyPost.Domain.Shipment
             if (options1 is null)
                 return false;
 
-            return options.additional_handling == options1.additional_handling &&
-                options.alcohol == options1.alcohol &&
-                options.by_drone == options1.by_drone &&
-                options.carbon_neutral == options1.carbon_neutral &&
-                string.Equals(options.delivery_confirmation, options1.delivery_confirmation, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.endorsement, options1.endorsement, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.handling_instructions, options1.handling_instructions, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.hazmat, options1.hazmat, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.invoice_number, options1.invoice_number, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.machinable, options1.machinable, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.print_custom_1, options1.print_custom_1, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.print_custom_1_code, options1.print_custom_1_code, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.print_custom_2, options1.print_custom_2, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.print_custom_2_code, options1.print_custom_2_code, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.print_custom_3, options1.print_custom_3, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.print_custom_3_code, options1.print_custom_3_code, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(options.special_rates_eligibility, options1.special_rates_eligibility, System.StringComparison.InvariantCultureIgnoreCase) &&
-                options.certified_mail == options1.certified_mail &&
-                options.registered_mail == options1.registered_mail &&
-                options.registered_mail_amount == options1.registered_mail_amount &&
-                options.return_receipt == options1.return_receipt;
+            return options.AdditionalHandling == options1.AdditionalHandling &&
+                options.Alcohol == options1.Alcohol &&
+                options.ByDrone == options1.ByDrone &&
+                options.CarbonNeutral == options1.CarbonNeutral &&
+                string.Equals(options.DeliveryConfirmation, options1.DeliveryConfirmation, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.Endorsement, options1.Endorsement, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.HandlingInstructions, options1.HandlingInstructions, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.Hazmat, options1.Hazmat, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.InvoiceNumber, options1.InvoiceNumber, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.Machinable, options1.Machinable, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.PrintCustom1, options1.PrintCustom1, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.PrintCustom1Code, options1.PrintCustom1Code, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.PrintCustom2, options1.PrintCustom2, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.PrintCustom2Code, options1.PrintCustom2Code, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.PrintCustom3, options1.PrintCustom3, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.PrintCustom3Code, options1.PrintCustom3Code, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(options.SpecialRatesEligibility, options1.SpecialRatesEligibility, System.StringComparison.InvariantCultureIgnoreCase) &&
+                options.CertifiedMail == options1.CertifiedMail &&
+                options.RegisteredMail == options1.RegisteredMail &&
+                options.RegisteredMailAmount == options1.RegisteredMailAmount &&
+                options.ReturnReceipt == options1.ReturnReceipt;
         }
 
         /// <summary>
@@ -88,14 +89,14 @@ namespace Nop.Plugin.Shipping.EasyPost.Domain.Shipment
             if (customsInfo1 is null)
                 return false;
 
-            return string.Equals(customsInfo.contents_type, customsInfo1.contents_type, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(customsInfo.restriction_type, customsInfo1.restriction_type, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(customsInfo.non_delivery_option, customsInfo1.non_delivery_option, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(customsInfo.contents_explanation, customsInfo1.contents_explanation, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(customsInfo.restriction_comments, customsInfo1.restriction_comments, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(customsInfo.customs_certify, customsInfo1.customs_certify, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(customsInfo.customs_signer, customsInfo1.customs_signer, System.StringComparison.InvariantCultureIgnoreCase) &&
-                string.Equals(customsInfo.eel_pfc, customsInfo1.eel_pfc, System.StringComparison.InvariantCultureIgnoreCase);
+            return string.Equals(customsInfo.ContentsType, customsInfo1.ContentsType, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(customsInfo.RestrictionType, customsInfo1.RestrictionType, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(customsInfo.NonDeliveryOption, customsInfo1.NonDeliveryOption, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(customsInfo.ContentsExplanation, customsInfo1.ContentsExplanation, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(customsInfo.RestrictionComments, customsInfo1.RestrictionComments, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(customsInfo.CustomsCertify, customsInfo1.CustomsCertify, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(customsInfo.CustomsSigner, customsInfo1.CustomsSigner, System.StringComparison.InvariantCultureIgnoreCase) &&
+                string.Equals(customsInfo.EelPfc, customsInfo1.EelPfc, System.StringComparison.InvariantCultureIgnoreCase);
         }
     }
 }

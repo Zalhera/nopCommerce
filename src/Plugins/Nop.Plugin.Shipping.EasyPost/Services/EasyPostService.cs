@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using EasyPost;
+using EasyPost.Models.API;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
@@ -28,6 +29,7 @@ using Nop.Services.Orders;
 using Nop.Services.Shipping;
 using Nop.Services.Shipping.Tracking;
 using Nop.Services.Stores;
+using System.Web;
 
 namespace Nop.Plugin.Shipping.EasyPost.Services
 {
@@ -62,6 +64,8 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
         private readonly IWorkContext _workContext;
         private readonly MeasureSettings _measureSettings;
         private readonly Nop.Core.Domain.Shipping.ShippingSettings _shippingSettings;
+
+        private Client _client;
 
         private static bool? _isConfigured;
 
@@ -118,6 +122,9 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
             _workContext = workContext;
             _measureSettings = measureSettings;
             _shippingSettings = shippingSettings;
+
+            var key = _easyPostSettings.UseSandbox ? _easyPostSettings.TestApiKey : _easyPostSettings.ApiKey;
+            _client = new Client(key);
         }
 
         #endregion
@@ -132,10 +139,10 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
         {
             if (!_isConfigured.HasValue)
             {
+                var client = EngineContext.Current.Resolve<Client>();
                 var settings = EngineContext.Current.Resolve<EasyPostSettings>();
                 var key = settings.UseSandbox ? settings.TestApiKey : settings.ApiKey;
-                ClientManager.SetCurrent(key);
-                _isConfigured = !string.IsNullOrEmpty(key);
+                _isConfigured = client != null && !string.IsNullOrEmpty(key);
             }
 
             return _isConfigured.Value;
@@ -215,7 +222,7 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
             var measureDimension = await _measureService.GetMeasureDimensionBySystemKeywordAsync(EasyPostDefaults.MeasureDimensionSystemName)
                 ?? throw new NopException($"'{EasyPostDefaults.MeasureDimensionSystemName}' measure dimension is not found");
 
-            var parcel = new Parcel();
+            var parcelAttributes = new Dictionary<string, object>();
 
             //get total weight
             var weight = await _shippingService.GetTotalWeightAsync(request, !adminRequest, !adminRequest);
@@ -223,7 +230,8 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
                 throw new NopException("Parcel weight cannot be zero");
 
             weight = await _measureService.ConvertFromPrimaryMeasureWeightAsync(weight, measureWeight);
-            parcel.weight = Convert.ToDouble(Math.Max(Math.Round(weight, 1, MidpointRounding.ToPositiveInfinity), 0.1M));
+            var parcelWeight = Convert.ToDouble(Math.Max(Math.Round(weight, 1, MidpointRounding.ToPositiveInfinity), 0.1M));
+            parcelAttributes.Add("weight", parcelWeight);
 
             //if there is a single item, try to get a predefined package for this
             if (request.Items.Count == 1 && request.Items.FirstOrDefault().GetQuantity() == 1)
@@ -233,25 +241,29 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
                     .GetAttributeAsync<string>(product, EasyPostDefaults.ProductPredefinedPackageAttribute) ?? string.Empty;
                 var predefinedPackage = predefinedPackageValue.Split('.').LastOrDefault();
                 if (!string.IsNullOrEmpty(predefinedPackage))
-                    parcel.predefined_package = predefinedPackage;
+                    parcelAttributes.Add("predefined_package", predefinedPackage);
             }
 
-            if (string.IsNullOrEmpty(parcel.predefined_package))
+            if (parcelAttributes.TryGetValue("predefined_package", out var parcelPredefinedPackage) &&
+                string.IsNullOrEmpty(parcelPredefinedPackage.ToString()))
             {
                 //get dimensions
                 var (width, length, height) = await _shippingService.GetDimensionsAsync(request.Items, !adminRequest);
 
                 width = await _measureService.ConvertFromPrimaryMeasureDimensionAsync(width, measureDimension);
-                parcel.width = Convert.ToDouble(Math.Max(Math.Round(width, 1, MidpointRounding.ToPositiveInfinity), 0.1M));
+                var parcelWidth = Convert.ToDouble(Math.Max(Math.Round(width, 1, MidpointRounding.ToPositiveInfinity), 0.1M));
+                parcelAttributes.Add("width", parcelWidth);
 
                 length = await _measureService.ConvertFromPrimaryMeasureDimensionAsync(length, measureDimension);
-                parcel.length = Convert.ToDouble(Math.Max(Math.Round(length, 1, MidpointRounding.ToPositiveInfinity), 0.1M));
+                var parcelLength = Convert.ToDouble(Math.Max(Math.Round(length, 1, MidpointRounding.ToPositiveInfinity), 0.1M));
+                parcelAttributes.Add("length", parcelLength);
 
                 height = await _measureService.ConvertFromPrimaryMeasureDimensionAsync(height, measureDimension);
-                parcel.height = Convert.ToDouble(Math.Max(Math.Round(height, 1, MidpointRounding.ToPositiveInfinity), 0.1M));
+                var parcelHeight = Convert.ToDouble(Math.Max(Math.Round(height, 1, MidpointRounding.ToPositiveInfinity), 0.1M));
+                parcelAttributes.Add("height", parcelHeight);
             }
 
-            return parcel;
+            return await _client.Parcel.Create(parcelAttributes);
         }
 
         /// <summary>
@@ -335,21 +347,23 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
         /// </returns>
         private async Task<Address> PrepareAddressToAsync(GetShippingOptionRequest request)
         {
-            return new Address
+            var addressAttributes = new Dictionary<string, object>()
             {
-                name = !string.IsNullOrEmpty(request.ShippingAddress.FirstName)
-                    ? $"{request.ShippingAddress.FirstName} {request.ShippingAddress.LastName}"
-                    : null,
-                email = request.ShippingAddress.Email,
-                phone = request.ShippingAddress.PhoneNumber,
-                company = request.ShippingAddress.Company,
-                street1 = request.ShippingAddress.Address1,
-                street2 = request.ShippingAddress.Address2,
-                city = request.ShippingAddress.City,
-                state = (await _stateProvinceService.GetStateProvinceByAddressAsync(request.ShippingAddress))?.Abbreviation,
-                country = (await _countryService.GetCountryByAddressAsync(request.ShippingAddress))?.TwoLetterIsoCode,
-                zip = request.ShippingAddress.ZipPostalCode
+                { "name", !string.IsNullOrEmpty(request.ShippingAddress.FirstName)
+                                        ? $"{request.ShippingAddress.FirstName} {request.ShippingAddress.LastName}"
+                                        : null },
+                { "email", request.ShippingAddress.Email },
+                { "phone", request.ShippingAddress.PhoneNumber },
+                { "company", request.ShippingAddress.Company },
+                { "street1", request.ShippingAddress.Address1 },
+                { "street2", request.ShippingAddress.Address2 },
+                { "city", request.ShippingAddress.City },
+                { "state", (await _stateProvinceService.GetStateProvinceByAddressAsync(request.ShippingAddress))?.Abbreviation },
+                { "country", (await _countryService.GetCountryByAddressAsync(request.ShippingAddress))?.TwoLetterIsoCode },
+                { "zip", request.ShippingAddress.ZipPostalCode }
             };
+
+            return await _client.Address.Create(addressAttributes);
         }
 
         /// <summary>
@@ -363,16 +377,18 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
         private async Task<Address> PrepareAddressFromAsync(GetShippingOptionRequest request)
         {
             var store = await _storeService.GetStoreByIdAsync(request.StoreId);
-            return new Address
+            var addressAttributes = new Dictionary<string, object>()
             {
-                company = store.CompanyName,
-                phone = store.CompanyPhoneNumber,
-                street1 = request.AddressFrom,
-                city = request.CityFrom,
-                state = request.StateProvinceFrom?.Abbreviation,
-                country = request.CountryFrom?.TwoLetterIsoCode,
-                zip = request.ZipPostalCodeFrom
+                { "company", store.CompanyName },
+                { "phone", store.CompanyPhoneNumber },
+                { "street1", request.AddressFrom },
+                { "city", request.CityFrom },
+                { "state", request.StateProvinceFrom?.Abbreviation },
+                { "country", request.CountryFrom?.TwoLetterIsoCode },
+                { "zip", request.ZipPostalCodeFrom },
             };
+
+            return await _client.Address.Create(addressAttributes);
         }
 
         /// <summary>
@@ -412,9 +428,10 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
             }
 
             //set currency
-            options ??= new();
-            if (string.IsNullOrEmpty(options.currency))
-                options.currency = EasyPostDefaults.CurrencyCode;
+            var optionsParameters = options == null ? new Dictionary<string, object>()
+            {
+                { nameof(Options.Currency), EasyPostDefaults.CurrencyCode },
+            } : null;
 
             //create shipment
             var shipmentParameters = new Dictionary<string, object>()
@@ -423,19 +440,20 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
                 { "from_address", addressFrom },
                 { "parcel", parcel },
                 { "customs_info", customsInfo },
-                { "options", options },
+                { "options", options == null ? optionsParameters : options },
             };
 
             if (!_easyPostSettings.UseSandbox && !_easyPostSettings.UseAllAvailableCarriers)
-                shipmentParameters.Add("carrier_accounts", _easyPostSettings.CarrierAccounts?.Select(value => new CarrierAccount { id = value }).ToList());
+                shipmentParameters.Add("carrier_accounts", _easyPostSettings.CarrierAccounts?
+                    .Select(value => new Dictionary<string, object> { { "id", value } }).ToList());
 
-            var shipment = await Shipment.Create(shipmentParameters);
+            var shipment = await _client.Shipment.Create(shipmentParameters);
 
             //log warning messages if any
-            if (_easyPostSettings.LogShipmentMessages && shipment.messages?.Any() == true)
+            if (_easyPostSettings.LogShipmentMessages && shipment.Messages?.Any() == true)
             {
-                var warning = shipment.messages
-                    .Aggregate(string.Empty, (text, message) => $"{text}{message.carrier}: {message.message};{Environment.NewLine}");
+                var warning = shipment.Messages
+                    .Aggregate(string.Empty, (text, message) => $"{text}{message.Carrier}: {message.Text};{Environment.NewLine}");
                 await _logger.WarningAsync($"{EasyPostDefaults.SystemName} warning. {warning}");
             }
 
@@ -444,10 +462,10 @@ namespace Nop.Plugin.Shipping.EasyPost.Services
             {
                 async Task addressWarning(Address address, bool log)
                 {
-                    if (address.verifications?.delivery?.success != false)
+                    if (address.Verifications?.Delivery?.Success != false)
                         return;
 
-                    var errors = address.verifications.delivery.errors;
+                    var errors = address.Verifications.Delivery.Errors;
                     if (log)
                         throw new HttpException(422, "ADDRESS.VERIFY.FAILURE", "Unable to verify the origin address", errors);
 
